@@ -58,7 +58,7 @@ int initializeGame(int numPlayers, int kingdomCards[10], int randomSeed,
     {
       for (j = 0; j < 10; j++)
         {
-	  if (j != i && kingdomCards[j] == kingdomCards[i])
+vvvv	  if (j != i && kingdomCards[j] == kingdomCards[i])
 	    {
 	      return -1;
 	    }
@@ -643,6 +643,136 @@ int getCost(int cardNumber)
   return -1;
 }
 
+int mineEffect(int choice1, int choice2, int choice3, struct gameState *state, int handPos, int currentPlayer)
+{
+	int j;
+
+	j = state->hand[currentPlayer][choice1];  // store card we will trash
+
+	if (state->hand[currentPlayer][choice1] < copper ||
+	    state->hand[currentPlayer][choice1] > gold)
+	{
+		return -1;
+	}
+	if (choice2 > treasure_map || choice2 < curse)
+	{
+		return -1;
+	}
+	if ( (getCost(state->hand[currentPlayer][choice1]) + 3) > getCost(choice2) )
+	}
+		return -1;
+	}
+
+	gainCard(choice2, state, 2, currentPlayer);
+
+	discardCard(handPos, currentPlayer, state, 0);
+
+	for (i=0; i<state->handCount[currentPlayer]; i++)
+	{
+		if (state->hand[currentPlayer][i] == j)
+		{
+			discardCard(i, currentPlayer, state, 0);
+			break;
+		}
+	}
+
+	return 0;
+}
+
+int smithyEffect(struct gameState *state, int handPos, int currentPlayer)
+{
+	//+3 Cards
+	for (i = 0; i < 3; i++)
+	{
+		drawCard(currentPlayer, state);
+	}
+			
+	//discard card from hand
+	discardCard(handPos, currentPlayer, state, 0);
+	return 0;
+}
+
+int cutPurseEffect(struct gameState *state, int currentPlayer)
+{
+	updateCoins(currentPlayer, state, 2);
+	for (i = 0; i < state->numPlayers; i++)
+	{
+		if (i != currentPlayer)
+	    {
+		    for (j = 0; j < state->handCount[i]; j++)
+			{
+				if (state->hand[i][j] == copper)
+				{
+					discardCard(i, j, state, 0);
+					break;
+				}
+				if (j == state->handCount[i])
+				{
+					for (k = 0; k < state->handCount[i]; k++)
+					{
+						if (DEBUG)
+							printf("Player %d reveals card number %d\n", i, state->hand[i][k]);
+					}	
+					break;
+				}		
+			}
+	    }
+	}				
+
+	//discard played card from hand
+	discardCard(handPos, currentPlayer, state, 0);			
+
+	return 0;
+}
+
+int seahagEffect(struct gameState *state)
+{
+	for (i = 0; i < state->numPlayers; i++){
+		if (i != currentPlayer){
+			state->discard[i][state->discardCount[i]] = state->deck[i][state->deckCount[i]--];
+			state->deckCount[i]--;
+			state->discardCount[i]++;
+			state->deck[i][state->deckCount[i]--] = curse;//Top card now a curse
+		}
+	}
+	return 0;
+}
+
+int treasuremapEffect(struct gameState *state, int handPos, int currentPlayer)
+{
+
+	//search hand for another treasure_map
+	index = -1;
+	for (i = 0; i < state->handCount[currentPlayer]; )
+	{
+		if (state->hand[currentPlayer][++i] == treasure_map && i != handPos)
+	    {
+		    index = i;
+		    break;
+	    }
+	}
+	
+	if (index > -1)
+	{
+		//trash both treasure cards
+		discardCard(handPos, currentPlayer, state, 1);
+		discardCard(index, currentPlayer, state, 1);
+
+		//gain 4 Gold cards
+		for (i = 0; i < 4; i++)
+	    {
+		    gainCard(gold, state, 1, currentPlayer);
+	    }
+				
+		//return success
+		return 0;
+	}
+			
+	//no second treasure_map found in hand
+	return -1;
+    }
+}
+
 int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState *state, int handPos, int *bonus)
 {
   int i;
@@ -768,39 +898,7 @@ int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState
       return -1;
 			
     case mine:
-      j = state->hand[currentPlayer][choice1];  //store card we will trash
-
-      if (state->hand[currentPlayer][choice1] < copper || state->hand[currentPlayer][choice1] > gold)
-	{
-	  return -1;
-	}
-		
-      if (choice2 > treasure_map || choice2 < curse)
-	{
-	  return -1;
-	}
-
-      if ( (getCost(state->hand[currentPlayer][choice1]) + 3) > getCost(choice2) )
-	{
-	  return -1;
-	}
-
-      gainCard(choice2, state, 2, currentPlayer);
-
-      //discard card from hand
-      discardCard(handPos, currentPlayer, state, 0);
-
-      //discard trashed card
-      for (i = 0; i < state->handCount[currentPlayer]; i++)
-	{
-	  if (state->hand[currentPlayer][i] == j)
-	    {
-	      discardCard(i, currentPlayer, state, 0);			
-	      break;
-	    }
-	}
-			
-      return 0;
+	    return mineEffect(choice1, choice2, choice3, state, handPos, currentPlayer);
 			
     case remodel:
       j = state->hand[currentPlayer][choice1];  //store card we will trash
@@ -829,15 +927,7 @@ int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState
       return 0;
 		
     case smithy:
-      //+3 Cards
-      for (i = 0; i < 3; i++)
-	{
-	  drawCard(currentPlayer, state);
-	}
-			
-      //discard card from hand
-      discardCard(handPos, currentPlayer, state, 0);
-      return 0;
+	    return smithyEffect(state, handPos, currentPlayer);
 		
     case village:
       //+1 Card
@@ -1104,38 +1194,7 @@ int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState
       return 0;
 		
     case cutpurse:
-
-      updateCoins(currentPlayer, state, 2);
-      for (i = 0; i < state->numPlayers; i++)
-	{
-	  if (i != currentPlayer)
-	    {
-	      for (j = 0; j < state->handCount[i]; j++)
-		{
-		  if (state->hand[i][j] == copper)
-		    {
-		      discardCard(j, i, state, 0);
-		      break;
-		    }
-		  if (j == state->handCount[i])
-		    {
-		      for (k = 0; k < state->handCount[i]; k++)
-			{
-			  if (DEBUG)
-			    printf("Player %d reveals card number %d\n", i, state->hand[i][k]);
-			}	
-		      break;
-		    }		
-		}
-					
-	    }
-				
-	}				
-
-      //discard played card from hand
-      discardCard(handPos, currentPlayer, state, 0);			
-
-      return 0;
+	    return cutPurseEffect(state, currentPlayer);
 
 		
     case embargo: 
@@ -1180,45 +1239,10 @@ int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState
       return 0;
 		
     case sea_hag:
-      for (i = 0; i < state->numPlayers; i++){
-	if (i != currentPlayer){
-	  state->discard[i][state->discardCount[i]] = state->deck[i][state->deckCount[i]--];			    state->deckCount[i]--;
-	  state->discardCount[i]++;
-	  state->deck[i][state->deckCount[i]--] = curse;//Top card now a curse
-	}
-      }
-      return 0;
+	    return seahagEffect(state)
 		
     case treasure_map:
-      //search hand for another treasure_map
-      index = -1;
-      for (i = 0; i < state->handCount[currentPlayer]; i++)
-	{
-	  if (state->hand[currentPlayer][i] == treasure_map && i != handPos)
-	    {
-	      index = i;
-	      break;
-	    }
-	}
-      if (index > -1)
-	{
-	  //trash both treasure cards
-	  discardCard(handPos, currentPlayer, state, 1);
-	  discardCard(index, currentPlayer, state, 1);
-
-	  //gain 4 Gold cards
-	  for (i = 0; i < 4; i++)
-	    {
-	      gainCard(gold, state, 1, currentPlayer);
-	    }
-				
-	  //return success
-	  return 1;
-	}
-			
-      //no second treasure_map found in hand
-      return -1;
-    }
+	    return treasuremapEffect(state, handPos, currentPlayer)
 	
   return -1;
 }
