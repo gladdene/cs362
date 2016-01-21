@@ -1,0 +1,3 @@
+2016-01-21 20:15z
+Pulled the code form 'case: mine' in cardEffect into its own function 'mineEffect', which is then called in case: mine
+Did the same for smithy, cutpurse, seahag, and treasuremap
